@@ -12,17 +12,19 @@ static const int showsystray        = 1;        /* 0 means no systray */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const int focusonwheel       = 0;
-static const char *fonts[]          = { "monospace:size=10" };
-static const char dmenufont[]       = "monospace:size=10";
-static const char col_gray1[]       = "#222222";
-static const char col_gray2[]       = "#444444";
-static const char col_gray3[]       = "#bbbbbb";
-static const char col_gray4[]       = "#eeeeee";
-static const char col_cyan[]        = "#005577";
+static const char *fonts[]          = { "FiraCode Nerd Font Mono:style=Retina,Regular:pixelsize=14:antialias=true:autohint=true" };
+static const char dmenufont[]       = "FiraCode Nerd Font Mono:style=Retina,Regular:pixelsize=16:antialias=true:autohint=true";
+static const char col_gray1[]       = "#282828";
+static const char col_gray2[]       = "#a89984";
+static const char col_gray3[]       = "#ebdbb2";
+static const char col_gray4[]       = "#fbf1c7";
+static const char col_gray5[]       = "#3c3836";
+static const char col_cyan[]        = "#458588";
+static const char col_orange[]      = "#fe8019";
 static const char *colors[][3]      = {
 	/*               fg         bg         border   */
 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
+	[SchemeSel]  = { col_gray4, col_gray5,  col_orange  },
 };
 
 /* tagging */
@@ -35,11 +37,13 @@ static const Rule rules[] = {
 	 */
 	/* class      instance    title       tags mask     isfloating   monitor */
 	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
+	{ "firefox",  NULL,       NULL,       1 << 1,       0,           -1 },
+	{ "Microsoft-edge", NULL, NULL,       1 << 2,       0,           -1 },
+	{ "Virt-manager", NULL,   NULL,       1 << 4,       0,           -1 },
 };
 
 /* layout(s) */
-static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
+static const float mfact     = 0.5; /* factor of master area size [0.05..0.95] */
 static const int nmaster     = 1;    /* number of clients in master area */
 static const int resizehints = 0;    /* 1 means respect size hints in tiled resizals */
 static const int lockfullscreen = 1; /* 1 will force focus on the fullscreen window */
@@ -54,6 +58,7 @@ static const Layout layouts[] = {
 
 /* key definitions */
 #define MODKEY Mod1Mask
+#define SPRKEY Mod4Mask
 #define TAGKEYS(KEY,TAG) \
 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
@@ -67,13 +72,24 @@ static const Layout layouts[] = {
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
-static const char *termcmd[]  = { "st", NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_gray5, "-sf", col_gray3, "-l", "6", "-bw", "2", "-c", NULL };
+static const char *lockcmd[]  = { "slock", NULL };
+static const char *screenshotcmd[] = { "flameshot", "gui", NULL };
+static const char *termcmd[]  = { "alacritty", NULL };
+static const char *twitchcmd[] = { "sh", "-c", "dtwitch.sh", NULL };
+static const char *webcmd[]  = { "firefox", NULL };
+static const char *web2cmd[]  = { "microsoft-edge-stable", NULL };
+
+#include <X11/XF86keysym.h>
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+	{ MODKEY,                       XK_w,      spawn,          {.v = webcmd } },
+	{ MODKEY,                       XK_e,      spawn,          {.v = web2cmd } },
+  { MODKEY,                       XK_c,      spawn,          {.v = twitchcmd } },
+  { 0,                            XK_Print,  spawn,          {.v = screenshotcmd} },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
@@ -81,6 +97,7 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
 	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+	{ SPRKEY,                       XK_l,      spawn,          {.v = lockcmd } },
 	{ MODKEY,                       XK_Return, zoom,           {0} },
 	{ MODKEY,                       XK_Tab,    view,           {0} },
 	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
@@ -105,6 +122,14 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+
+	{ 0,                            XF86XK_AudioMute, spawn,   SHCMD("pactl set-sink-mute @DEFAULT_SINK@ toggle && pkill -RTMIN+10 dwmblocks") },
+	{ 0,                            XF86XK_AudioRaiseVolume, spawn, SHCMD("pactl set-sink-volume @DEFAULT_SINK@ +1000 && pkill -RTMIN+10 dwmblocks") },
+  { 0,                            XF86XK_AudioLowerVolume, spawn, SHCMD("pactl set-sink-volume @DEFAULT_SINK@ -1000 && pkill -RTMIN+10 dwmblocks") },
+	{ 0,                            XF86XK_AudioMicMute,  spawn,  SHCMD("pactl set-source-mute @DEFAULT_SOURCE@ toggle && notify-send -t 1000 'Microphone' \"$(pactl get-source-mute @DEFAULT_SOURCE@)\"") },
+	{ 0,                            XF86XK_MonBrightnessUp, spawn,  SHCMD("brightnessctl set +10% && pkill -RTMIN+2 dwmblocks") },
+	{ 0,                            XF86XK_MonBrightnessDown, spawn,  SHCMD("brightnessctl set 10%- && pkill -RTMIN+2 dwmblocks") },
+  { Mod4Mask,                     XK_p,      spawn,          SHCMD("arandr") },
 };
 
 /* button definitions */
@@ -117,6 +142,9 @@ static const Button buttons[] = {
 	{ ClkStatusText,        0,              Button1,        sigstatusbar,   {.i = 1} },
 	{ ClkStatusText,        0,              Button2,        sigstatusbar,   {.i = 2} },
 	{ ClkStatusText,        0,              Button3,        sigstatusbar,   {.i = 3} },
+	{ ClkStatusText,        0,              Button4,        sigstatusbar,   {.i = 4} },
+	{ ClkStatusText,        0,              Button5,        sigstatusbar,   {.i = 5} },
+	{ ClkStatusText,        ShiftMask,      Button1,        sigstatusbar,   {.i = 6} },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
